@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
 )
 
 func main() {
@@ -20,12 +19,9 @@ func main() {
 			}
 		}
 		userInput := scanner.Text()
-		if strings.TrimSpace(userInput) == "" {
-			continue
+		err := lookupCommand(userInput)
+		if err != nil {
+			fmt.Println(err)
 		}
-		cleanedWords := cleanInput(userInput)
-		command := cleanedWords[0]
-
-		fmt.Printf("Your command was: %s\n", command)
 	}
 }
