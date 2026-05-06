@@ -3,11 +3,12 @@ package commands
 import (
 	"fmt"
 	"os"
+	"pokedexcli/internal/pokeApi"
 	"pokedexcli/utils"
 	"strings"
 )
 
-var configPtr *config = &config{}
+var configPtr *locationConfig = &locationConfig{}
 
 func LookupCommand(input string) error {
 	if strings.TrimSpace(input) == "" {
@@ -37,7 +38,7 @@ func getCommands() map[string]cliCommand {
 		},
 		"map": {
 			name:        "map",
-			description: "Displays 20 location areas in the Pokemon world",
+			description: "Displays the next 20 location areas in the Pokemon world",
 			callback:    commandMap,
 		},
 	}
@@ -59,5 +60,27 @@ func commandHelp() error {
 }
 
 func commandMap() error {
+	url := "https://pokeapi.co/api/v2/location-area/"
+
+	if configPtr.Next != "" {
+		url = configPtr.Next
+	}
+
+	locationAreas, err := pokeApi.GetLocationAreas(url)
+
+	if err != nil {
+		return err
+	}
+
+	if locationAreas.Next != nil {
+		configPtr.Next = *locationAreas.Next
+	}
+	if locationAreas.Previous != nil {
+		configPtr.Previous = *locationAreas.Previous
+	}
+
+	for _, result := range locationAreas.Results {
+		fmt.Println(result.Name)
+	}
 	return nil
 }

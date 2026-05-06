@@ -6,7 +6,7 @@ type cliCommand struct {
 	callback    func() error
 }
 
-type config struct {
+type locationConfig struct {
 	Previous string
 	Next     string
 }
