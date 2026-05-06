@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"pokedexcli/internal/commands"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 			}
 		}
 		userInput := scanner.Text()
-		err := lookupCommand(userInput)
+		err := commands.LookupCommand(userInput)
 		if err != nil {
 			fmt.Println(err)
 		}
