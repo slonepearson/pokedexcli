@@ -41,6 +41,11 @@ func getCommands() map[string]cliCommand {
 			description: "Displays the next 20 location areas in the Pokemon world",
 			callback:    commandMap,
 		},
+		"mapb": {
+			name:        "mapb",
+			description: "Displays the previous 20 location areas in the Pokemon world",
+			callback:    commandMapb,
+		},
 	}
 }
 
@@ -60,8 +65,7 @@ func commandHelp() error {
 }
 
 func commandMap() error {
-	url := "https://pokeapi.co/api/v2/location-area/"
-
+	url := ""
 	if configPtr.Next != "" {
 		url = configPtr.Next
 	}
@@ -74,9 +78,40 @@ func commandMap() error {
 
 	if locationAreas.Next != nil {
 		configPtr.Next = *locationAreas.Next
+	} else {
+		configPtr.Next = ""
 	}
+
 	if locationAreas.Previous != nil {
 		configPtr.Previous = *locationAreas.Previous
+	}
+
+	for _, result := range locationAreas.Results {
+		fmt.Println(result.Name)
+	}
+	return nil
+}
+
+func commandMapb() error {
+	url := configPtr.Previous
+	if url == "" {
+		return fmt.Errorf("you're on the first page")
+	}
+
+	locationAreas, err := pokeApi.GetLocationAreas(url)
+
+	if err != nil {
+		return err
+	}
+
+	if locationAreas.Previous != nil {
+		configPtr.Previous = *locationAreas.Previous
+	} else {
+		configPtr.Previous = ""
+	}
+
+	if locationAreas.Next != nil {
+		configPtr.Next = *locationAreas.Next
 	}
 
 	for _, result := range locationAreas.Results {
