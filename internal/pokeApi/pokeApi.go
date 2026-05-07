@@ -3,10 +3,14 @@ package pokeapi
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"pokedexcli/internal/pokecache"
 	"time"
 )
+
+var cache = pokecache.NewCache(20 * time.Second)
 
 type areaLocations struct {
 	Count    int     `json:"count"`
@@ -20,7 +24,16 @@ type areaLocations struct {
 
 func GetLocationAreas(url string) (areaLocations, error) {
 	if url == "" {
-		url = "https://pokeapi.co/api/v2/location-area/"
+		url = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
+	}
+
+	if data, exists := cache.Get(url); exists {
+		var locations areaLocations
+		err := json.Unmarshal(data, &locations)
+		if err != nil {
+			return areaLocations{}, fmt.Errorf("issue parsing json: %v", err)
+		}
+		return locations, nil
 	}
 
 	client := http.Client{Timeout: 5 * time.Second}
@@ -37,13 +50,17 @@ func GetLocationAreas(url string) (areaLocations, error) {
 		return areaLocations{}, fmt.Errorf("non ok GET request: %v", res.Status)
 	}
 
-	defer res.Body.Close()
-	decoder := json.NewDecoder(res.Body)
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		return areaLocations{}, fmt.Errorf("error reading data: %v", err)
+	}
 
-	var locationAreas areaLocations
-	if err = decoder.Decode(&locationAreas); err != nil {
+	cache.Add(url, data)
+
+	var locations areaLocations
+	if err = json.Unmarshal(data, &locations); err != nil {
 		return areaLocations{}, fmt.Errorf("issue parsing json: %v", err)
 	}
 
-	return locationAreas, nil
+	return locations, nil
 }

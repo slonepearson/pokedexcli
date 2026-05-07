@@ -74,6 +74,7 @@ func TestCommands(t *testing.T) {
 
 			if tc.command == "mapb" && !tc.wantErr {
 				LookupCommand("map", &buf)
+				LookupCommand("map", &buf)
 				buf.Reset()
 			}
 
