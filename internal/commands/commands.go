@@ -3,18 +3,34 @@ package commands
 import (
 	"fmt"
 	"os"
-	"pokedexcli/internal/pokeApi"
-	"pokedexcli/utils"
+	"pokedexcli/internal/pokeapi"
 	"strings"
 )
 
+type cliCommand struct {
+	name        string
+	description string
+	callback    func() error
+}
+
+type locationConfig struct {
+	Previous string
+	Next     string
+}
+
 var configPtr *locationConfig = &locationConfig{}
+
+func cleanInput(text string) []string {
+	lowered := strings.ToLower(text)
+	words := strings.Fields(lowered)
+	return words
+}
 
 func LookupCommand(input string) error {
 	if strings.TrimSpace(input) == "" {
 		return fmt.Errorf("No command: type 'help' to see the supported commands")
 	}
-	command := utils.CleanInput(input)[0]
+	command := cleanInput(input)[0]
 	supportedCommands := getCommands()
 	handler, ok := supportedCommands[command]
 	if ok {
@@ -44,7 +60,7 @@ func getCommands() map[string]cliCommand {
 		"mapb": {
 			name:        "mapb",
 			description: "Displays the previous 20 location areas in the Pokemon world",
-			callback:    commandMapb,
+			callback:    commandMapB,
 		},
 	}
 }
@@ -70,7 +86,7 @@ func commandMap() error {
 		url = configPtr.Next
 	}
 
-	locationAreas, err := pokeApi.GetLocationAreas(url)
+	locationAreas, err := pokeapi.GetLocationAreas(url)
 
 	if err != nil {
 		return err
@@ -92,13 +108,13 @@ func commandMap() error {
 	return nil
 }
 
-func commandMapb() error {
+func commandMapB() error {
 	url := configPtr.Previous
 	if url == "" {
 		return fmt.Errorf("you're on the first page")
 	}
 
-	locationAreas, err := pokeApi.GetLocationAreas(url)
+	locationAreas, err := pokeapi.GetLocationAreas(url)
 
 	if err != nil {
 		return err

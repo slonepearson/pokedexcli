@@ -1,4 +1,4 @@
-package utils
+package commands
 
 import (
 	"testing"
@@ -18,7 +18,7 @@ func TestCleanInput(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			actual := CleanInput(c.input)
+			actual := cleanInput(c.input)
 			if len(actual) != len(c.expected) {
 				t.Fatalf("expected: %#v, got: %#v", c.expected, actual)
 			}

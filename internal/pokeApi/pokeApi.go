@@ -1,9 +1,11 @@
-package pokeApi
+package pokeapi
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"time"
 )
 
 type areaLocations struct {
@@ -17,13 +19,17 @@ type areaLocations struct {
 }
 
 func GetLocationAreas(url string) (areaLocations, error) {
-
 	if url == "" {
 		url = "https://pokeapi.co/api/v2/location-area/"
 	}
 
-	res, err := http.Get(url)
+	client := http.Client{Timeout: 5 * time.Second}
+
+	res, err := client.Get(url)
 	if err != nil {
+		if os.IsTimeout(err) {
+			return areaLocations{}, fmt.Errorf("The request timed out: %v", err)
+		}
 		return areaLocations{}, fmt.Errorf("network error: %v", err)
 	}
 
