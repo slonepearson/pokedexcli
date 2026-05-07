@@ -2,17 +2,21 @@ package commands
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"pokedexcli/internal/pokeapi"
 	"strings"
 )
 
+// each callback receives an io.Writer(os.Stdout) for easier testing
 type cliCommand struct {
 	name        string
 	description string
-	callback    func() error
+	callback    func(io.Writer) error
 }
 
+// Keeps tracks of the previous and next urls return by api call
+// to pagenate through the locations
 type locationConfig struct {
 	Previous string
 	Next     string
@@ -26,7 +30,7 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func LookupCommand(input string) error {
+func LookupCommand(input string, w io.Writer) error {
 	if strings.TrimSpace(input) == "" {
 		return fmt.Errorf("No command: type 'help' to see the supported commands")
 	}
@@ -34,12 +38,13 @@ func LookupCommand(input string) error {
 	supportedCommands := getCommands()
 	handler, ok := supportedCommands[command]
 	if ok {
-		return handler.callback()
+		return handler.callback(w)
 	} else {
 		return fmt.Errorf("Unknown command: type 'help' to see the supported commands")
 	}
 }
 
+// Registry of all supported commands
 func getCommands() map[string]cliCommand {
 	return map[string]cliCommand{
 		"help": {
@@ -65,22 +70,22 @@ func getCommands() map[string]cliCommand {
 	}
 }
 
-func commandExit() error {
-	fmt.Println("Closing the Pokedex... Goodbye!")
+func commandExit(w io.Writer) error {
+	fmt.Fprintln(w, "Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp() error {
-	fmt.Println("Welcome to the Pokedex!")
-	fmt.Print("Usage:\n\n")
+func commandHelp(w io.Writer) error {
+	fmt.Fprintln(w, "Welcome to the Pokedex!")
+	fmt.Fprint(w, "Usage:\n\n")
 	for _, command := range getCommands() {
-		fmt.Printf("%s: %s\n", command.name, command.description)
+		fmt.Fprintf(w, "%s: %s\n", command.name, command.description)
 	}
 	return nil
 }
 
-func commandMap() error {
+func commandMap(w io.Writer) error {
 	url := ""
 	if configPtr.Next != "" {
 		url = configPtr.Next
@@ -103,12 +108,12 @@ func commandMap() error {
 	}
 
 	for _, result := range locationAreas.Results {
-		fmt.Println(result.Name)
+		fmt.Fprintln(w, result.Name)
 	}
 	return nil
 }
 
-func commandMapB() error {
+func commandMapB(w io.Writer) error {
 	url := configPtr.Previous
 	if url == "" {
 		return fmt.Errorf("you're on the first page")
@@ -131,7 +136,7 @@ func commandMapB() error {
 	}
 
 	for _, result := range locationAreas.Results {
-		fmt.Println(result.Name)
+		fmt.Fprintln(w, result.Name)
 	}
 	return nil
 }

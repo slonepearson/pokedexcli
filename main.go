@@ -20,7 +20,7 @@ func main() {
 			}
 		}
 		userInput := scanner.Text()
-		err := commands.LookupCommand(userInput)
+		err := commands.LookupCommand(userInput, os.Stdout)
 		if err != nil {
 			fmt.Println(err)
 		}
