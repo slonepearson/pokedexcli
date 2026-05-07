@@ -2,6 +2,7 @@ package commands
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -35,45 +36,101 @@ func TestCleanInput(t *testing.T) {
 	}
 }
 
-func TestCommands(t *testing.T) {
+func TestHelpCommand(t *testing.T) {
 	cases := []struct {
-		name          string
-		command       string
-		toContain     []string
-		expectedCount int
-		wantCount     bool
-		wantErr       bool
+		name      string
+		command   string
+		toContain []string
 	}{
 		{
 			name:      "commandHelp",
 			command:   "help",
 			toContain: []string{"help", "exit", "map", "mapb"},
-			wantCount: false,
-		},
-		{
-			name:          "commandMap",
-			command:       "map",
-			expectedCount: 20,
-			wantCount:     true,
-		},
-		{
-			name:          "commandMapB",
-			command:       "mapb",
-			expectedCount: 20,
-			wantCount:     true,
-		},
-		{
-			name:    "firstPageCommandB",
-			command: "mapb",
-			wantErr: true,
 		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
 
+			err := LookupCommand(tc.command, &buf)
+
+			if err != nil {
+				t.Fatalf("Expected no errors, got %v", err)
+			}
+
+			for _, expected := range tc.toContain {
+				if !strings.Contains(buf.String(), expected) {
+					t.Fatalf("Expected usage to show command: %s\n Got %s ", expected, buf.String())
+				}
+			}
+
+		})
+	}
+}
+
+func TestCommandMap(t *testing.T) {
+	cases := []struct {
+		name          string
+		command       string
+		expectedCount int
+	}{
+		{
+			name:          "commandMap",
+			command:       "map",
+			expectedCount: 20,
+		},
+		{
+			name:          "commandMapNext",
+			command:       "map",
+			expectedCount: 40,
+		},
+	}
+	var buf bytes.Buffer
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+
+			err := LookupCommand(tc.command, &buf)
+
+			if err != nil {
+				t.Fatalf("Expected no errors, got %v", err)
+			}
+
+			s := buf.String()
+			actual := strings.Split(strings.Trim(s, "\n"), "\n")
+			if actualCount := len(actual); tc.expectedCount != actualCount {
+				t.Fatalf("Expected count: %d, Actual count: %d", tc.expectedCount, actualCount)
+			}
+		})
+	}
+}
+
+func TestCommandMapB(t *testing.T) {
+	cases := []struct {
+		name          string
+		command       string
+		expectedCount int
+		wantErr       bool
+	}{
+		{
+			name:    "firstPageCommandB",
+			command: "mapb",
+			wantErr: true,
+		},
+		{
+			name:    "commandMapB",
+			command: "mapb",
+		},
+	}
+
+	configPtr.Previous = ""
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			var expectedBuf bytes.Buffer
+
 			if tc.command == "mapb" && !tc.wantErr {
-				LookupCommand("map", &buf)
+				LookupCommand("map", &expectedBuf)
 				LookupCommand("map", &buf)
 				buf.Reset()
 			}
@@ -88,21 +145,15 @@ func TestCommands(t *testing.T) {
 				t.Fatalf("Expected no errors, got %v", err)
 			}
 
-			if !tc.wantCount {
-				for _, expected := range tc.toContain {
-					if !strings.Contains(buf.String(), expected) {
-						t.Fatalf("Expected usage to show command: %s\n Got %s ", expected, buf.String())
-					}
-				}
+			s := buf.String()
+			e := buf.String()
+			actual := strings.Split(strings.Trim(s, "\n"), "\n")
+			expected := strings.Split(strings.Trim(e, "\n"), "\n")
+
+			if !slices.Equal(actual, expected) {
+				t.Fatalf("Expected the result to equal the first page result")
 			}
 
-			if tc.wantCount {
-				s := buf.String()
-				actual := strings.Split(strings.Trim(s, "\n"), "\n")
-				if actualCount := len(actual); tc.expectedCount != actualCount {
-					t.Fatalf("Expected count: %d, Actual count: %d", tc.expectedCount, actualCount)
-				}
-			}
 		})
 	}
 }
