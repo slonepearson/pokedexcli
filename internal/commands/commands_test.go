@@ -2,6 +2,8 @@ package commands
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"slices"
 	"strings"
 	"testing"
@@ -31,6 +33,57 @@ func TestCleanInput(t *testing.T) {
 				if word != expectedWord {
 					t.Fatalf("expected: %#v, got: %#v", expectedWord, word)
 				}
+			}
+		})
+	}
+}
+
+func TestParseInput(t *testing.T) {
+	type expected struct {
+		command string
+		params  string
+		err     error
+	}
+
+	cases := []struct {
+		input    string
+		expected expected
+	}{
+		{
+			input:    "Help me",
+			expected: expected{"help", "me", nil},
+		},
+		{
+			input:    "exit",
+			expected: expected{"exit", "", nil},
+		},
+		{
+			input:    "",
+			expected: expected{"", "", errors.New("No command: type 'help' to see the supported commands")},
+		},
+		{
+			input:    "map over the locations",
+			expected: expected{"map", "over the locations", nil},
+		},
+	}
+
+	for i, c := range cases {
+		t.Run(fmt.Sprintf("Test %v", i+1), func(t *testing.T) {
+			actualCommand, actualParmas, actualErr := parseInput(c.input)
+
+			if c.expected.err != nil && actualErr == nil {
+				t.Errorf("Expected an error got <nil>")
+			}
+
+			if c.expected.err == nil && actualErr != nil {
+				t.Errorf("Didn't expect an error gor: %v", actualErr)
+			}
+
+			if actualCommand != c.expected.command {
+				t.Errorf("Expected: %v, Got: %v", c.expected.command, actualCommand)
+			}
+			if actualParmas != c.expected.params {
+				t.Errorf("Expected: %v, Got: %v", c.expected.params, actualParmas)
 			}
 		})
 	}
@@ -123,7 +176,7 @@ func TestCommandMapB(t *testing.T) {
 		},
 	}
 
-	configPtr.Previous = ""
+	configPtr.previous = ""
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
