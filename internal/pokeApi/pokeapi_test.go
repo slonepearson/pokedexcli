@@ -47,7 +47,7 @@ func TestGetAreas(t *testing.T) {
 			}))
 			defer server.Close()
 
-			locations, err := GetAreas(server.URL)
+			locations, err := FindAreas(server.URL)
 
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected an error, got nil")
@@ -116,7 +116,7 @@ func TestFindPokemon(t *testing.T) {
 			}))
 			defer server.Close()
 
-			encounters, err := FindPokemon(server.URL+tc.path, tc.location)
+			encounters, err := FindPokemonsByArea(server.URL+tc.path, tc.location)
 
 			if tc.wantErr && err == nil {
 				t.Fatalf("expected an error got <nil>")

@@ -3,10 +3,16 @@ package commands
 import (
 	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"os"
 	"pokedexcli/internal/pokeapi"
 	"strings"
+	"time"
 )
+
+// Used for storing caught pokemon
+var pokedex = map[string]pokeapi.PokemonInfo{}
 
 // each callback receives an io.Writer(os.Stdout) for easier testing
 type cliCommand struct {
@@ -96,9 +102,14 @@ func getCommands() map[string]cliCommand {
 			callback:    commandMapB,
 		},
 		"explore": {
-			name:        "explore <area_name>",
+			name:        "explore <area-name>",
 			description: "Display all pokemon listed at a location name",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch <pokemon-name>",
+			description: "Catch a desired pokemon",
+			callback:    commandCatch,
 		},
 	}
 }
@@ -133,7 +144,7 @@ func commandMap(w io.Writer, args []string) error {
 		url = configPtr.next
 	}
 
-	locationAreas, err := pokeapi.GetAreas(url)
+	locationAreas, err := pokeapi.FindAreas(url)
 
 	if err != nil {
 		return err
@@ -157,7 +168,7 @@ func commandMapB(w io.Writer, args []string) error {
 		return fmt.Errorf("you're on the first page")
 	}
 
-	locationAreas, err := pokeapi.GetAreas(url)
+	locationAreas, err := pokeapi.FindAreas(url)
 
 	if err != nil {
 		return err
@@ -177,7 +188,7 @@ func commandExplore(w io.Writer, args []string) error {
 		return fmt.Errorf("usage: explore <location-area-name>")
 	}
 
-	encounters, err := pokeapi.FindPokemon("https://pokeapi.co/api/v2/location-area", args[0])
+	encounters, err := pokeapi.FindPokemonsByArea("", args[0])
 	if err != nil {
 		return err
 	}
@@ -185,5 +196,41 @@ func commandExplore(w io.Writer, args []string) error {
 	for _, encounter := range encounters.PokemonEncounters {
 		fmt.Fprintf(w, "%s\n", encounter.Pokemon.Name)
 	}
+	return nil
+}
+
+func commandCatch(w io.Writer, args []string) error {
+
+	if len(args) != 1 {
+		return fmt.Errorf("usage: catch <pokemon-name>")
+	}
+
+	_, ok := pokedex[args[0]]
+	if ok {
+		return fmt.Errorf("pokemon %s already caught", args[0])
+	}
+
+	const k int = 5000
+	const minRoll int = 1
+	const maxRoll int = 255
+
+	fmt.Fprintf(w, "Throwing a Pokeball at %v...\n", args[0])
+	pokemon, err := pokeapi.GetPokemonInfo("", args[0])
+	if err != nil {
+		return err
+	}
+
+	baseExp := pokemon.BaseExperience
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	roll := math.Max(float64(minRoll), float64(r.Intn(maxRoll)))
+	threshhold := math.Min(float64(maxRoll), float64(k/baseExp))
+
+	if roll > threshhold {
+		fmt.Fprintf(w, "%s escaped!\n", args[0])
+		return nil
+	}
+	pokedex[args[0]] = pokemon
+	fmt.Fprintf(w, "%s was caught!\n", args[0])
 	return nil
 }

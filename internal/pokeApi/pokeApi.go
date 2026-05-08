@@ -33,11 +33,33 @@ type pokemonEncounters struct {
 	} `json:"pokemon_encounters"`
 }
 
-// GET request to the Location Area Endpoint with cache
-func GetLocationAreaEndpoint(url string) ([]byte, error) {
-	if url == "" {
-		url = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
-	}
+type PokemonInfo struct {
+	ID             int    `json:"id"`
+	Name           string `json:"name"`
+	BaseExperience int    `json:"base_experience"`
+	Height         int    `json:"height"`
+	IsDefault      bool   `json:"is_default"`
+	Order          int    `json:"order"`
+	Weight         int    `json:"weight"`
+	Stats          []struct {
+		BaseStat int `json:"base_stat"`
+		Effort   int `json:"effort"`
+		Stat     struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"stat"`
+	} `json:"stats"`
+	Types []struct {
+		Slot int `json:"slot"`
+		Type struct {
+			Name string `json:"name"`
+			URL  string `json:"url"`
+		} `json:"type"`
+	} `json:"types"`
+}
+
+// GET request to PokeApi endpoints with cache
+func MakeGetPokeApi(url string) ([]byte, error) {
 
 	if data, exists := cache.Get(url); exists {
 		return data, nil
@@ -52,6 +74,7 @@ func GetLocationAreaEndpoint(url string) ([]byte, error) {
 		}
 		return nil, fmt.Errorf("network error: %v", err)
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("non ok GET request: %v", res.Status)
@@ -66,12 +89,12 @@ func GetLocationAreaEndpoint(url string) ([]byte, error) {
 	return data, nil
 }
 
-func GetAreas(url string) (locationAreas, error) {
+func FindAreas(url string) (locationAreas, error) {
 	if url == "" {
 		url = "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20"
 	}
 
-	data, err := GetLocationAreaEndpoint(url)
+	data, err := MakeGetPokeApi(url)
 	if err != nil {
 		return locationAreas{}, err
 	}
@@ -82,9 +105,12 @@ func GetAreas(url string) (locationAreas, error) {
 	return locations, err
 }
 
-func FindPokemon(url string, areaName string) (pokemonEncounters, error) {
-	url = fmt.Sprintf("%s/%v", url, areaName)
-	data, err := GetLocationAreaEndpoint(url)
+func FindPokemonsByArea(url string, areaName string) (pokemonEncounters, error) {
+	if url == "" {
+		url = "https://pokeapi.co/api/v2/location-area"
+	}
+	url = fmt.Sprintf("%v/%v", url, areaName)
+	data, err := MakeGetPokeApi(url)
 	if err != nil {
 		return pokemonEncounters{}, err
 	}
@@ -93,4 +119,20 @@ func FindPokemon(url string, areaName string) (pokemonEncounters, error) {
 		return pokemonEncounters{}, err
 	}
 	return encounters, nil
+}
+
+func GetPokemonInfo(url string, pokemonName string) (PokemonInfo, error) {
+	if url == "" {
+		url = "https://pokeapi.co/api/v2/pokemon"
+	}
+	url = fmt.Sprintf("%v/%v", url, pokemonName)
+	data, err := MakeGetPokeApi(url)
+	if err != nil {
+		return PokemonInfo{}, err
+	}
+	var pokemon PokemonInfo
+	if err := json.Unmarshal(data, &pokemon); err != nil {
+		return PokemonInfo{}, err
+	}
+	return pokemon, nil
 }
