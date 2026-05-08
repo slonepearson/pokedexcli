@@ -111,6 +111,11 @@ func getCommands() map[string]cliCommand {
 			description: "Catch a desired pokemon",
 			callback:    commandCatch,
 		},
+		"inspect": {
+			name:        "inspect <pokemon-name>",
+			description: "Inspect a caught pokemon's stats",
+			callback:    commandInspect,
+		},
 	}
 }
 
@@ -232,5 +237,28 @@ func commandCatch(w io.Writer, args []string) error {
 	}
 	pokedex[args[0]] = pokemon
 	fmt.Fprintf(w, "%s was caught!\n", args[0])
+	return nil
+}
+
+func commandInspect(w io.Writer, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: inspect <caught-pokemon-name>")
+	}
+	pokemon, ok := pokedex[args[0]]
+	if !ok {
+		return fmt.Errorf("you have not caught that pokemon")
+	}
+
+	fmt.Fprintf(w, "Name: %v\n", pokemon.Name)
+	fmt.Fprintf(w, "Height: %v\n", pokemon.Height)
+	fmt.Fprintf(w, "Weight: %v\n", pokemon.Weight)
+	fmt.Fprint(w, "Stats:\n")
+	for _, stat := range pokemon.Stats {
+		fmt.Fprintf(w, " -%v: %v\n", stat.Stat.Name, stat.BaseStat)
+	}
+	fmt.Fprint(w, "Types:\n")
+	for _, t := range pokemon.Types {
+		fmt.Fprintf(w, " - %v\n", t.Type.Name)
+	}
 	return nil
 }
