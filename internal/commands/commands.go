@@ -12,7 +12,7 @@ import (
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(io.Writer, string) error
+	callback    func(io.Writer, []string) error
 }
 
 // Keeps tracks of the previous and next urls return by api call
@@ -46,34 +46,30 @@ func cleanInput(text string) []string {
 	return words
 }
 
-func parseInput(input string) (command string, params string, err error) {
+func parseInput(input string) (command string, args []string, err error) {
 	if strings.TrimSpace(input) == "" {
-		return "", "", fmt.Errorf("No command: type 'help' to see the supported commands")
+		return command, args, fmt.Errorf("No command: type 'help' to see supported commands")
 	}
 	inputs := cleanInput(input)
 	command = inputs[0]
-	if len(inputs) > 1 {
-		params = inputs[1]
+	if len(inputs) >= 2 {
+		args = inputs[1:]
 	}
-	if len(inputs) > 2 {
-		for _, param := range inputs[2:] {
-			params += fmt.Sprintf(" %s", param)
-		}
-	}
-	return command, params, nil
+
+	return command, args, nil
 }
 
 func LookupCommand(input string, w io.Writer) error {
-	command, params, err := parseInput(input)
+	command, args, err := parseInput(input)
 	if err != nil {
 		return err
 	}
 	supportedCommands := getCommands()
 	handler, ok := supportedCommands[command]
 	if ok {
-		return handler.callback(w, params)
+		return handler.callback(w, args)
 	} else {
-		return fmt.Errorf("Unknown command: type 'help' to see the supported commands")
+		return fmt.Errorf("Unknown command: type 'help' to see supported commands")
 	}
 }
 
@@ -103,13 +99,19 @@ func getCommands() map[string]cliCommand {
 	}
 }
 
-func commandExit(w io.Writer, params string) error {
+func commandExit(w io.Writer, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("Too many arguments, Usage: exit")
+	}
 	fmt.Fprintln(w, "Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 	return nil
 }
 
-func commandHelp(w io.Writer, params string) error {
+func commandHelp(w io.Writer, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("Too many arguments, Usage: help")
+	}
 	fmt.Fprintln(w, "Welcome to the Pokedex!")
 	fmt.Fprint(w, "Usage:\n\n")
 	for _, command := range getCommands() {
@@ -118,7 +120,10 @@ func commandHelp(w io.Writer, params string) error {
 	return nil
 }
 
-func commandMap(w io.Writer, params string) error {
+func commandMap(w io.Writer, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("Too many arguments, Usage: map")
+	}
 	url := ""
 	if configPtr.next != "" {
 		url = configPtr.next
@@ -139,7 +144,10 @@ func commandMap(w io.Writer, params string) error {
 	return nil
 }
 
-func commandMapB(w io.Writer, params string) error {
+func commandMapB(w io.Writer, args []string) error {
+	if len(args) > 0 {
+		return fmt.Errorf("Too many arguments, Usage: mapb")
+	}
 	url := configPtr.previous
 	if url == "" {
 		return fmt.Errorf("you're on the first page")
@@ -155,7 +163,7 @@ func commandMapB(w io.Writer, params string) error {
 	configPtr.updateNext(locationAreas.Next)
 
 	for _, result := range locationAreas.Results {
-		fmt.Fprintln(w, result.Name)
+		fmt.Fprintf(w, "%s\n", result.Name)
 	}
 	return nil
 }

@@ -41,7 +41,7 @@ func TestCleanInput(t *testing.T) {
 func TestParseInput(t *testing.T) {
 	type expected struct {
 		command string
-		params  string
+		args    []string
 		err     error
 	}
 
@@ -51,25 +51,25 @@ func TestParseInput(t *testing.T) {
 	}{
 		{
 			input:    "Help me",
-			expected: expected{"help", "me", nil},
+			expected: expected{"help", []string{"me"}, nil},
 		},
 		{
 			input:    "exit",
-			expected: expected{"exit", "", nil},
+			expected: expected{"exit", []string{}, nil},
 		},
 		{
 			input:    "",
-			expected: expected{"", "", errors.New("No command: type 'help' to see the supported commands")},
+			expected: expected{"", []string{}, errors.New("No command: type 'help' to see the supported commands")},
 		},
 		{
 			input:    "map over the locations",
-			expected: expected{"map", "over the locations", nil},
+			expected: expected{"map", []string{"over", "the", "location"}, nil},
 		},
 	}
 
 	for i, c := range cases {
 		t.Run(fmt.Sprintf("Test %v", i+1), func(t *testing.T) {
-			actualCommand, actualParmas, actualErr := parseInput(c.input)
+			actualCommand, actualArgs, actualErr := parseInput(c.input)
 
 			if c.expected.err != nil && actualErr == nil {
 				t.Errorf("Expected an error got <nil>")
@@ -82,8 +82,8 @@ func TestParseInput(t *testing.T) {
 			if actualCommand != c.expected.command {
 				t.Errorf("Expected: %v, Got: %v", c.expected.command, actualCommand)
 			}
-			if actualParmas != c.expected.params {
-				t.Errorf("Expected: %v, Got: %v", c.expected.params, actualParmas)
+			if len(actualArgs) != len(c.expected.args) {
+				t.Errorf("Expected: %#v, Got: %#v", c.expected.args, actualArgs)
 			}
 		})
 	}
