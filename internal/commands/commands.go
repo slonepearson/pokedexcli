@@ -15,8 +15,7 @@ type cliCommand struct {
 	callback    func(io.Writer, []string) error
 }
 
-// Keeps tracks of the previous and next urls return by api call
-// to pagenate through the locations
+// Keeps tracks of 'previous' and 'next' urls to pagenate through locations
 type config struct {
 	previous string
 	next     string
@@ -96,6 +95,11 @@ func getCommands() map[string]cliCommand {
 			description: "Displays the previous 20 location areas in the Pokemon world",
 			callback:    commandMapB,
 		},
+		"explore": {
+			name:        "explore <area_name>",
+			description: "Display all pokemon listed at a location name",
+			callback:    commandExplore,
+		},
 	}
 }
 
@@ -129,7 +133,7 @@ func commandMap(w io.Writer, args []string) error {
 		url = configPtr.next
 	}
 
-	locationAreas, err := pokeapi.GetLocationAreas(url)
+	locationAreas, err := pokeapi.GetAreas(url)
 
 	if err != nil {
 		return err
@@ -153,7 +157,7 @@ func commandMapB(w io.Writer, args []string) error {
 		return fmt.Errorf("you're on the first page")
 	}
 
-	locationAreas, err := pokeapi.GetLocationAreas(url)
+	locationAreas, err := pokeapi.GetAreas(url)
 
 	if err != nil {
 		return err
@@ -164,6 +168,22 @@ func commandMapB(w io.Writer, args []string) error {
 
 	for _, result := range locationAreas.Results {
 		fmt.Fprintf(w, "%s\n", result.Name)
+	}
+	return nil
+}
+
+func commandExplore(w io.Writer, args []string) error {
+	if len(args) != 1 {
+		return fmt.Errorf("usage: explore <location-area-name>")
+	}
+
+	encounters, err := pokeapi.FindPokemon("https://pokeapi.co/api/v2/location-area", args[0])
+	if err != nil {
+		return err
+	}
+
+	for _, encounter := range encounters.PokemonEncounters {
+		fmt.Fprintf(w, "%s\n", encounter.Pokemon.Name)
 	}
 	return nil
 }

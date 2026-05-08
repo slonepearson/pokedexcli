@@ -160,10 +160,9 @@ func TestCommandMap(t *testing.T) {
 
 func TestCommandMapB(t *testing.T) {
 	cases := []struct {
-		name          string
-		command       string
-		expectedCount int
-		wantErr       bool
+		name    string
+		command string
+		wantErr bool
 	}{
 		{
 			name:    "firstPageCommandB",
